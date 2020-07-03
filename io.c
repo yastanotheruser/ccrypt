@@ -1,5 +1,6 @@
 #include "io.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <gio/gio.h>
 #include "ccrypt.h"
 #include "lib/bytes.h"

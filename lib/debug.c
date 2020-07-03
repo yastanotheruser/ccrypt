@@ -6,7 +6,7 @@
 void print_hexdump(const uint8_t *bytes, size_t size) {
     for (size_t b = 0; b < size; b += DUMP_LINE_BYTES) {
         size_t abytes = size - b < DUMP_LINE_BYTES ? size - b : DUMP_LINE_BYTES;
-        printf("%08lx: ", b);
+        printf("%08zx: ", b);
         for (size_t i = 0; i < DUMP_LINE_BYTES; i++) {
             size_t bi = b + i;
             if (bi < size) {

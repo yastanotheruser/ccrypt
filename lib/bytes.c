@@ -61,7 +61,7 @@ uint8_t *PermutateBits(
     if (tsize % 8 > 0) {
         fprintf(
             stderr,
-            "WARNING: Permutation table size %li is not a multiple of 8",
+            "WARNING: Permutation table size %zd is not a multiple of 8",
             tsize
         );
         rsize++;
@@ -79,7 +79,7 @@ uint8_t *PermutateBits(
             if (byte >= size) {
                 fprintf(
                     stderr,
-                    "WARNING: Bit position %li exceeds bytes size",
+                    "WARNING: Bit position %zd exceeds bytes size",
                     bit
                 );
             }
