@@ -95,15 +95,17 @@ static void init_shared_objects(GtkWindow *window) {
         "_Abrir",
         "_Cancelar"
     );
-    GtkFileFilter *filter = gtk_file_filter_new();
+    GtkFileFilter *dst_filter = gtk_file_filter_new();
+    GtkFileFilter *src_filter = gtk_file_filter_new();
 
     gtk_file_chooser_set_do_overwrite_confirmation(
         GTK_FILE_CHOOSER(dst_native),
         TRUE
     );
-    gtk_file_filter_add_pattern(filter, "*");
-    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dst_native), filter);
-    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(src_native), filter);
+    gtk_file_filter_add_pattern(dst_filter, "*");
+    gtk_file_filter_add_pattern(src_filter, "*");
+    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dst_native), dst_filter);
+    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(src_native), src_filter);
 
     shared_objs.window = window;
     shared_objs.dst_native = dst_native;
@@ -197,6 +199,11 @@ static void enc_file_set(void) {
     const gchar *path = gtk_file_chooser_get_filename(file_enc_objs.file_chooser);
     gtk_entry_set_text(file_enc_objs.file_entry, path);
     file_enc_update_buttons();
+}
+
+static void file_enc_key_visibility_toggled(GtkToggleButton *toggle) {
+    gboolean visible = !gtk_toggle_button_get_active(toggle);
+    gtk_entry_set_visibility(file_enc_objs.key_entry, visible);
 }
 
 static void file_enc_begin(void) {
@@ -391,6 +398,8 @@ static void init_file_enc_tab(GtkWidget *notebook) {
 
     GtkWidget *key_entry_label = gtk_label_new("Clave de encriptación");
     GtkWidget *key_entry = gtk_entry_new();
+    GtkWidget *key_visibility_toggle = \
+        gtk_check_button_new_with_label("Ocultar");
 
     GtkWidget *button_box = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     GtkWidget *enc_button = gtk_button_new_with_label("Encriptar");
@@ -419,6 +428,7 @@ static void init_file_enc_tab(GtkWidget *notebook) {
 
     gtk_widget_set_halign(key_entry_label, GTK_ALIGN_END);
     gtk_entry_set_visibility(GTK_ENTRY(key_entry), FALSE);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(key_visibility_toggle), TRUE);
 
     gtk_button_box_set_layout(GTK_BUTTON_BOX(button_box), GTK_BUTTONBOX_EXPAND);
     gtk_box_pack_start(GTK_BOX(button_box), enc_button, TRUE, TRUE, 0);
@@ -437,7 +447,8 @@ static void init_file_enc_tab(GtkWidget *notebook) {
     gtk_grid_attach(GTK_GRID(grid), file_chooser, 3, 1, 1, 1);
 
     gtk_grid_attach(GTK_GRID(grid), key_entry_label, 1, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), key_entry, 2, 2, 2, 1);
+    gtk_grid_attach(GTK_GRID(grid), key_entry, 2, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), key_visibility_toggle, 3, 2, 1, 1);
 
     gtk_grid_attach(GTK_GRID(grid), rmorig_button, 1, 3, 3, 1);
 
@@ -478,6 +489,13 @@ static void init_file_enc_tab(GtkWidget *notebook) {
         NULL
     );
 
+    g_signal_connect(
+        key_visibility_toggle,
+        "toggled",
+        G_CALLBACK(file_enc_key_visibility_toggled),
+        NULL
+    );
+
     g_signal_connect_after(
         enc_button,
         "clicked",
@@ -508,6 +526,14 @@ static void text_enc_key_entry_changed(
     gtk_widget_set_sensitive(accept_button, key_length > 0);
 }
 
+static void text_enc_key_visibility_toggled(
+    GtkToggleButton *toggle,
+    GtkEntry *key_entry
+) {
+    gboolean visible = !gtk_toggle_button_get_active(toggle);
+    gtk_entry_set_visibility(key_entry, visible);
+}
+
 static const gchar *text_enc_read_key(GtkWindow *parent) {
     gint result = 0;
     const gchar *key = NULL;
@@ -526,6 +552,8 @@ static const gchar *text_enc_read_key(GtkWindow *parent) {
     GtkWidget *key_dialog_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     GtkWidget *key_entry_label = gtk_label_new("Clave de encriptación");
     GtkWidget *key_entry = gtk_entry_new();
+    GtkWidget *key_visibility_toggle = \
+        gtk_check_button_new_with_label("Ocultar");
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     GtkWidget *key_dialog_action = \
@@ -551,8 +579,16 @@ static const gchar *text_enc_read_key(GtkWindow *parent) {
         TRUE,
         0
     );
+    gtk_box_pack_start(
+        GTK_BOX(key_dialog_box),
+        key_visibility_toggle,
+        TRUE,
+        TRUE,
+        0
+    );
     gtk_entry_set_visibility(GTK_ENTRY(key_entry), FALSE);
     gtk_widget_set_size_request(key_entry, 300, -1);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(key_visibility_toggle), TRUE);
     gtk_container_add(GTK_CONTAINER(key_dialog_content), key_dialog_box);
     g_object_set(key_dialog_action, "margin-top", 10, NULL);
     gtk_widget_set_halign(key_dialog_action, GTK_ALIGN_CENTER);
@@ -563,6 +599,13 @@ static const gchar *text_enc_read_key(GtkWindow *parent) {
         "changed",
         G_CALLBACK(text_enc_key_entry_changed),
         accept_button
+    );
+
+    g_signal_connect(
+        key_visibility_toggle,
+        "toggled",
+        G_CALLBACK(text_enc_key_visibility_toggled),
+        key_entry
     );
 
     gtk_widget_show_all(key_dialog);
@@ -869,9 +912,13 @@ static void activate(GtkApplication *app) {
     gtk_window_set_default_size(GTK_WINDOW(window), -1, -1);
     gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    gtk_window_set_icon_from_file(
+        GTK_WINDOW(window),
+        "icon.png",
+        NULL
+    );
 
     init_app(window);
-
     gtk_widget_show_all(window);
     hide_widgets();
 }
@@ -880,8 +927,6 @@ int init_gui(int argc, char **argv) {
     GtkApplication *app;
     int status;
 
-    gtk_init(&argc, &argv);
-    printf("XD %i\n", g_application_id_is_valid("org.ccrypt.gccrypt"));
     app = gtk_application_new("org.ccrypt.gccrypt", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);

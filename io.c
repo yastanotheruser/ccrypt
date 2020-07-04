@@ -1,6 +1,7 @@
 #include "io.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <gio/gio.h>
 #include "ccrypt.h"
 #include "lib/bytes.h"
@@ -182,7 +183,10 @@ file_enc_result encrypt_file(
 
 cleanup_cipher:
     DestroyCCryptCipher(cipher);
+    g_output_stream_close(output, NULL, NULL);
+    g_object_unref(output);
     g_file_delete(dst_file, NULL, NULL);
+    goto cleanup_info;
 cleanup_output:
     g_output_stream_close(output, NULL, NULL);
     g_object_unref(output);
@@ -341,7 +345,10 @@ file_dec_result decrypt_file(
 cleanup_decipher:
     DestroyCCryptDecipher(decipher);
 cleanup_output_file:
+    g_output_stream_close(output, NULL, NULL);
+    g_object_unref(output);
     g_file_delete(dst_file, NULL, NULL);
+    goto cleanup_info;
 cleanup_output:
     g_output_stream_close(output, NULL, NULL);
     g_object_unref(output);
